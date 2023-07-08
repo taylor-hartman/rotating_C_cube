@@ -27,7 +27,7 @@ void display(void) {
 
   glPointSize(5);
 
-  glBegin(GL_POLYGON);
+  glBegin(GL_LINE_LOOP);
 
   glVertex2d(-0.5, 0.5);
   glVertex2d(0.5, 0.5);
