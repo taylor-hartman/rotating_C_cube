@@ -7,8 +7,9 @@
 #include <gsl/gsl_matrix.h>
 #include <math.h>
 
-double verticies[] = {-0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, -0.5};
+double verticies[] = {-0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0};
 double angle = 0;
+double verticies2D[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 int main(int argC, char argV[]) {
   glutInit(&argC, &argV);
@@ -32,31 +33,57 @@ void initWindow(void) {
 void rotate() {
   angle = 2 * 3.141 / 60 / 5;  // full rotation once per 5 seconds
 
-  double rotation[] = {cos(angle), -sin(angle), sin(angle), cos(angle)};
-  gsl_matrix_view rotMat = gsl_matrix_view_array(rotation, 2, 2);
+  // define 3d rotation matricies
+  double rotationX[] = {1,           0, 0,          0,         cos(angle),
+                        -sin(angle), 0, sin(angle), cos(angle)};
+  double rotationY[] = {cos(angle), 0,           sin(angle), 0,         1,
+                        0,          -sin(angle), 0,          cos(angle)};
+  double rotationZ[] = {cos(angle), -sin(angle), 0, sin(angle), cos(angle),
+                        0,          0,           0, 1};
 
-  double box[] = {0, 0, 0, 0, 0, 0, 0, 0};
-  double boxT[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  gsl_matrix_view rotMat = gsl_matrix_view_array(rotationX, 3, 3);
+
+  double box[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  double boxT[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   int count = sizeof(verticies) / sizeof(verticies[0]);
   for (int i = 0; i < count; i++) {
     box[i] = verticies[i];
   }
 
-  gsl_matrix_view boxMat = gsl_matrix_view_array(box, 4, 2);
-  gsl_matrix_view boxMatT = gsl_matrix_view_array(boxT, 2, 4);
+  gsl_matrix_view boxMat = gsl_matrix_view_array(box, 4, 3);
+  gsl_matrix_view boxMatT = gsl_matrix_view_array(boxT, 3, 4);
   gsl_matrix_transpose_memcpy(&boxMatT.matrix, &boxMat.matrix);
 
-  double result[] = {0, 0, 0, 0, 0, 0, 0, 0};
-  double resultT[] = {0, 0, 0, 0, 0, 0, 0, 0};
-  gsl_matrix_view resultMat = gsl_matrix_view_array(result, 2, 4);
-  gsl_matrix_view resultTMat = gsl_matrix_view_array(resultT, 4, 2);
+  double result[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  gsl_matrix_view resultMat = gsl_matrix_view_array(result, 3, 4);
+  double resultT[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  gsl_matrix_view resultTMat = gsl_matrix_view_array(resultT, 4, 3);
 
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &rotMat.matrix,
                  &boxMatT.matrix, 0.0, &resultMat.matrix);
 
   gsl_matrix_transpose_memcpy(&resultTMat.matrix, &resultMat.matrix);
 
+  double projection[] = {1, 0, 0, 0, 1, 0};
+  gsl_matrix_view projectionMat = gsl_matrix_view_array(projection, 2, 3);
+
+  double result2D[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  gsl_matrix_view result2DMat = gsl_matrix_view_array(result2D, 2, 4);
+  double result2DT[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  gsl_matrix_view result2DTMat = gsl_matrix_view_array(result2DT, 4, 2);
+
+  gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &projectionMat.matrix,
+                 &resultMat.matrix, 0.0, &result2DMat.matrix);
+
+  gsl_matrix_transpose_memcpy(&result2DTMat.matrix, &result2DMat.matrix);
+
+  count = sizeof(verticies2D) / sizeof(verticies2D[0]);
+  for (int i = 0; i < count; i++) {
+    verticies2D[i] = result2DT[i];
+  }
+
+  count = sizeof(verticies) / sizeof(verticies[0]);
   for (int i = 0; i < count; i++) {
     verticies[i] = resultT[i];
   }
@@ -72,9 +99,9 @@ void display() {
 
   glBegin(GL_LINE_LOOP);
 
-  int count = sizeof(verticies) / sizeof(verticies[0]);
+  int count = sizeof(verticies2D) / sizeof(verticies2D[0]);
   for (int i = 0; i < count; i += 2) {
-    glVertex2d(verticies[i], verticies[i + 1]);
+    glVertex2d(verticies2D[i], verticies2D[i + 1]);
   }
 
   glEnd();
