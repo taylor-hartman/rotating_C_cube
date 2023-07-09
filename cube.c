@@ -10,7 +10,6 @@
 double verticies[] = {-0.5, 0.5,  0.5,  0.5,  0.5,  0.5,  0.5,  -0.5,
                       0.5,  -0.5, -0.5, 0.5,  -0.5, 0.5,  -0.5, 0.5,
                       0.5,  -0.5, 0.5,  -0.5, -0.5, -0.5, -0.5, -0.5};
-double angle = 0;
 double verticies2D[16] = {0};
 
 int main(int argC, char argV[]) {
@@ -28,24 +27,31 @@ int main(int argC, char argV[]) {
 
 void initWindow(void) {
   glClearColor(0, 0, 0, 0);  // color to use when clearing
-  glColor3f(1, 0, 0);
+  glColor3f(1, 1, 1);
   // glOrtho(-1, 1, -1, 1, -1, 1);
 }
 
 void loop() {
-  angle = 2 * 3.141 / 60 / 10;  // full rotation once per 10 seconds
-
+  double angle = 2 * 3.141 / 60 / 15;  // full rotation once per 10 seconds
+  double slowAngle = angle / 2;
   // define 3d rotation matricies
   double rotationX[] = {1,           0, 0,          0,         cos(angle),
                         -sin(angle), 0, sin(angle), cos(angle)};
   double rotationY[] = {cos(angle), 0,           sin(angle), 0,         1,
                         0,          -sin(angle), 0,          cos(angle)};
-  double rotationZ[] = {cos(angle), -sin(angle), 0, sin(angle), cos(angle),
-                        0,          0,           0, 1};
+  double rotationZ[] = {cos(slowAngle),
+                        -sin(slowAngle),
+                        0,
+                        sin(slowAngle),
+                        cos(slowAngle),
+                        0,
+                        0,
+                        0,
+                        1};
 
   rotate(rotationX);
   rotate(rotationY);
-  // rotate(rotationZ);
+  rotate(rotationZ);
 
   project();
 
@@ -105,12 +111,46 @@ void display() {
 
   glPointSize(10);
 
-  glBegin(GL_POINTS);
+  glBegin(GL_LINES);
 
-  int count = sizeof(verticies2D) / sizeof(verticies2D[0]);
-  for (int i = 0; i < count; i += 2) {
-    glVertex2d(verticies2D[i], verticies2D[i + 1]);
-  }
+  // sqaure 1
+  glVertex2d(verticies2D[0], verticies2D[1]);
+  glVertex2d(verticies2D[2], verticies2D[3]);
+
+  glVertex2d(verticies2D[2], verticies2D[3]);
+  glVertex2d(verticies2D[4], verticies2D[5]);
+
+  glVertex2d(verticies2D[4], verticies2D[5]);
+  glVertex2d(verticies2D[6], verticies2D[7]);
+
+  glVertex2d(verticies2D[6], verticies2D[7]);
+  glVertex2d(verticies2D[0], verticies2D[1]);
+
+  // sqaure 2
+  glVertex2d(verticies2D[8], verticies2D[9]);
+  glVertex2d(verticies2D[10], verticies2D[11]);
+
+  glVertex2d(verticies2D[10], verticies2D[11]);
+  glVertex2d(verticies2D[12], verticies2D[13]);
+
+  glVertex2d(verticies2D[12], verticies2D[13]);
+  glVertex2d(verticies2D[14], verticies2D[15]);
+
+  glVertex2d(verticies2D[14], verticies2D[15]);
+  glVertex2d(verticies2D[8], verticies2D[9]);
+
+  // connect squares
+  glVertex2d(verticies2D[8], verticies2D[9]);
+  glVertex2d(verticies2D[0], verticies2D[1]);
+
+  glVertex2d(verticies2D[10], verticies2D[11]);
+  glVertex2d(verticies2D[2], verticies2D[3]);
+
+  glVertex2d(verticies2D[12], verticies2D[13]);
+  glVertex2d(verticies2D[4], verticies2D[5]);
+
+  glVertex2d(verticies2D[14], verticies2D[15]);
+  glVertex2d(verticies2D[6], verticies2D[7]);
 
   glEnd();
 
