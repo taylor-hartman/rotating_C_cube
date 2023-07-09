@@ -7,10 +7,15 @@
 #include <gsl/gsl_matrix.h>
 #include <math.h>
 
-double verticies[] = {-0.5, 0.5,  0.5,  0.5,  0.5,  0.5,  0.5,  -0.5,
-                      0.5,  -0.5, -0.5, 0.5,  -0.5, 0.5,  -0.5, 0.5,
-                      0.5,  -0.5, 0.5,  -0.5, -0.5, -0.5, -0.5, -0.5};
-double verticies2D[16] = {0};
+double verticies[] =
+    {
+        -0.5, 0.5,  0.5,  0.5,  0.5,  0.5,  0.5, -0.5, 0.5,
+        -0.5, -0.5, 0.5,  -0.5, 0.5,  -0.5, 0.5, 0.5,  -0.5,
+        0.5,  -0.5, -0.5, -0.5, -0.5, -0.5};  // 8 verticies of cube in 3d.
+                                              // format: x1, y1, z1, x2, y2,
+                                              // z2, x3, y3, z3....
+
+double verticies2D[16] = {0};  // 2D projection of 3d verticies
 
 int main(int argC, char argV[]) {
   glutInit(&argC, &argV);
@@ -26,14 +31,14 @@ int main(int argC, char argV[]) {
 }
 
 void initWindow(void) {
-  glClearColor(0, 0, 0, 0);  // color to use when clearing
-  glColor3f(1, 1, 1);
-  // glOrtho(-1, 1, -1, 1, -1, 1);
+  glClearColor(0, 0, 0, 0);  // color to use for background when clearing
+  glColor3f(1, 1, 1);        // color of cube
 }
 
 void loop() {
-  double angle = 2 * 3.141 / 60 / 15;  // full rotation once per 10 seconds
+  double angle = 2 * 3.141 / 60 / 15;  // full angle sweep once per 15 seconds
   double slowAngle = angle / 2;
+
   // define 3d rotation matricies
   double rotationX[] = {1,           0, 0,          0,         cos(angle),
                         -sin(angle), 0, sin(angle), cos(angle)};
@@ -55,9 +60,10 @@ void loop() {
 
   project();
 
-  glutTimerFunc((int)1000 / 60, loop,
-                0);  // continue to call this function 60 times per sec
-  glutPostRedisplay();
+  // continue to call this function 60 times per sec
+  glutTimerFunc((int)1000 / 60, loop, 0);
+
+  glutPostRedisplay();  // trigger re-render
 }
 
 void rotate(double *rotation) {
@@ -85,7 +91,7 @@ void rotate(double *rotation) {
 
 void project() {
   /*projects global verticies array into global verticies2D array*/
-  double projection[] = {1, 0, 0, 0, 1, 0};
+  double projection[] = {1, 0, 0, 0, 1, 0};  // keep X and Y, elliminate Z
   gsl_matrix_view projectionMat = gsl_matrix_view_array(projection, 2, 3);
 
   double result2D[16] = {0};
@@ -94,22 +100,23 @@ void project() {
       verticies2D, 8,
       2);  // 2D result will be stored into global verticies2D array
 
+  // get 3d verticies and take transpose to prep for calculations
   gsl_matrix_view boxMat = gsl_matrix_view_array(verticies, 8, 3);
   double boxT[24] = {0};
   gsl_matrix_view boxMatT = gsl_matrix_view_array(boxT, 3, 8);
 
   gsl_matrix_transpose_memcpy(&boxMatT.matrix, &boxMat.matrix);
 
+  // do the porjection
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &projectionMat.matrix,
                  &boxMatT.matrix, 0.0, &result2DMat.matrix);
 
+  // tranpose result back to original format and save to global verticies2D
   gsl_matrix_transpose_memcpy(&result2DTMat.matrix, &result2DMat.matrix);
 }
 
 void display() {
   glClear(GL_COLOR_BUFFER_BIT);  // clears window
-
-  glPointSize(10);
 
   glBegin(GL_LINES);
 
