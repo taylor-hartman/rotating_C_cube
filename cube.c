@@ -9,7 +9,7 @@
 
 double verticies[] = {-0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0};
 double angle = 0;
-double verticies2D[] = {0, 0, 0, 0, 0, 0, 0, 0};
+double verticies2D[] = {-0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, -0.5};
 
 int main(int argC, char argV[]) {
   glutInit(&argC, &argV);
@@ -19,7 +19,7 @@ int main(int argC, char argV[]) {
   glutCreateWindow("cube");
   initWindow();
   glutDisplayFunc(display);
-  glutTimerFunc((int)1000 / 60, rotate, 0);  // initial call rotate
+  glutTimerFunc((int)1000 / 60, loop, 0);  // initial call rotate
   glutMainLoop();
   return 0;
 }
@@ -30,7 +30,7 @@ void initWindow(void) {
   // glOrtho(-1, 1, -1, 1, -1, 1);
 }
 
-void rotate() {
+void loop() {
   angle = 2 * 3.141 / 60 / 5;  // full rotation once per 5 seconds
 
   // define 3d rotation matricies
@@ -41,55 +41,59 @@ void rotate() {
   double rotationZ[] = {cos(angle), -sin(angle), 0, sin(angle), cos(angle),
                         0,          0,           0, 1};
 
-  gsl_matrix_view rotMat = gsl_matrix_view_array(rotationX, 3, 3);
+  rotate(rotationX);
 
-  double box[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  double boxT[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  project();
 
-  int count = sizeof(verticies) / sizeof(verticies[0]);
-  for (int i = 0; i < count; i++) {
-    box[i] = verticies[i];
-  }
+  glutTimerFunc((int)1000 / 60, loop,
+                0);  // continue to call this function 60 times per sec
+  glutPostRedisplay();
+}
 
-  gsl_matrix_view boxMat = gsl_matrix_view_array(box, 4, 3);
+void rotate(double *rotation) {
+  /*rotate verticies and save result to global verticies array*/
+  gsl_matrix_view rotMat = gsl_matrix_view_array(rotation, 3, 3);
+
+  gsl_matrix_view boxMat = gsl_matrix_view_array(
+      verticies, 4, 3);  // box mat is a really just the verticies array
+
+  double boxT[12] = {0};
   gsl_matrix_view boxMatT = gsl_matrix_view_array(boxT, 3, 4);
+
   gsl_matrix_transpose_memcpy(&boxMatT.matrix, &boxMat.matrix);
 
-  double result[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  double result[12] = {0};
   gsl_matrix_view resultMat = gsl_matrix_view_array(result, 3, 4);
-  double resultT[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  gsl_matrix_view resultTMat = gsl_matrix_view_array(resultT, 4, 3);
 
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &rotMat.matrix,
                  &boxMatT.matrix, 0.0, &resultMat.matrix);
 
-  gsl_matrix_transpose_memcpy(&resultTMat.matrix, &resultMat.matrix);
+  gsl_matrix_transpose_memcpy(
+      &boxMat.matrix, &resultMat.matrix);  // store the transpose of result into
+                                           // global verticies array
+}
 
+void project() {
+  /*projects global verticies array into global verticies2D array*/
   double projection[] = {1, 0, 0, 0, 1, 0};
   gsl_matrix_view projectionMat = gsl_matrix_view_array(projection, 2, 3);
 
-  double result2D[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  double result2D[8] = {0};
   gsl_matrix_view result2DMat = gsl_matrix_view_array(result2D, 2, 4);
-  double result2DT[] = {0, 0, 0, 0, 0, 0, 0, 0};
-  gsl_matrix_view result2DTMat = gsl_matrix_view_array(result2DT, 4, 2);
+  gsl_matrix_view result2DTMat = gsl_matrix_view_array(
+      verticies2D, 4,
+      2);  // 2D result will be stored into global verticies2D array
+
+  gsl_matrix_view boxMat = gsl_matrix_view_array(verticies, 4, 3);
+  double boxT[12] = {0};
+  gsl_matrix_view boxMatT = gsl_matrix_view_array(boxT, 3, 4);
+
+  gsl_matrix_transpose_memcpy(&boxMatT.matrix, &boxMat.matrix);
 
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &projectionMat.matrix,
-                 &resultMat.matrix, 0.0, &result2DMat.matrix);
+                 &boxMatT.matrix, 0.0, &result2DMat.matrix);
 
   gsl_matrix_transpose_memcpy(&result2DTMat.matrix, &result2DMat.matrix);
-
-  count = sizeof(verticies2D) / sizeof(verticies2D[0]);
-  for (int i = 0; i < count; i++) {
-    verticies2D[i] = result2DT[i];
-  }
-
-  count = sizeof(verticies) / sizeof(verticies[0]);
-  for (int i = 0; i < count; i++) {
-    verticies[i] = resultT[i];
-  }
-  glutTimerFunc((int)1000 / 60, rotate,
-                0);  // continue to call this function 60 times per sec
-  glutPostRedisplay();
 }
 
 void display() {
